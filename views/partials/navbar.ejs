@@ -7,8 +7,16 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
             <div class="navbar-nav">
-                <a class="nav-link" href="/camps/new">New Campsite</a>
                 <a class="nav-link" href="/camps">Campsites</a>
+                <a class="nav-link" href="/camps/new">New Campsite</a>
+            </div>
+            <div class="navbar-nav ml-auto">
+               <% if(!currentUser) { %>
+               <a class="nav-link" href="/login">Login</a>
+               <a class="nav-link" href="/register">Register</a>
+               <% } else{ %>
+               <a class="nav-link" href="/logout">Logout</a>
+               <% } %>
             </div>
         </div>
     </div>

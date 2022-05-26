@@ -1,3 +1,7 @@
+if (process.env.NODE_ENV !== "production"){
+    require('dotenv').config();
+} 
+
 const express = require('express');
 const app = express();
 const path = require('path');
@@ -7,11 +11,20 @@ const ExpressError = require('./utilities/expressError');
 const ejsmate = require('ejs-mate');
 const session = require('express-session');
 const flash = require('connect-flash');
-const campgrounds = require('./routes/camps');
-const reviews = require('./routes/reviews');
+const passport = require('passport');
+const LocalStrategy =  require('passport-local');
+const User = require('./models/user');
+const mongoSanitize = require('express-mongo-sanitize');
+
+//routes
+const userRoutes = require('./routes/users');
+const campgroundRoutes = require('./routes/camps');
+const reviewRoutes = require('./routes/reviews');
 // const MongoDBStore = require("connect-mongo")(session);
 // const session = require('express-session');
 const MongoStore = require('connect-mongo');
+const req = require('express/lib/request');
+
 const dbUrl = process.env.DB_URL || 'mongodb://localhost:27017/travel-bee';
 
 // 'mongodb://localhost:27017/travel-bee'
@@ -33,8 +46,11 @@ app.engine('ejs', ejsmate);
 app.use(express.urlencoded({extended: true}));
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(mongoSanitize({
+    replaceWith: '_'
+}));
 
-const secret = process.env.SECRET || 'thisisasecret';
+const secret = process.env.SECRET || 'thisshouldbeabettersecret!';
 const store =  MongoStore.create({
     mongoUrl: dbUrl,
     secret,
@@ -57,17 +73,37 @@ const sessionConfig = {
         maxAge: 1000*60*60*24*7
     }
 }
+
 app.use(session(sessionConfig));
 app.use(flash());
 
+app.use(passport.initialize());
+app.use(passport.session()); 
+passport.use(new LocalStrategy(User.authenticate()));
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
 app.use((req,res,next) => {
+    res.locals.currentUser = req.user;
     res.locals.success = req.flash('success');
     res.locals.error = req.flash('error');
     next();
 })
 
-app.use('/camps', campgrounds);
-app.use('/camps/:id/reviews', reviews);
+// app.get('/dummyUser', async (req,res) => {
+//     const user = new User({ email: 'xyz@gmail.com', username: 'ishuuu'});
+//     const newUser = await User.register(user, 'chicken');
+//     res.send(newUser);
+// })
+
+app.use('/', userRoutes);
+app.use('/camps', campgroundRoutes);
+app.use('/camps/:id/reviews', reviewRoutes);
+
+app.get('/', (req, res) => {
+    res.render('home');
+})
 
 app.all('*' , (req, res, next) => {
     next(new ExpressError('Page not found', 404));
