@@ -50,7 +50,6 @@ CampgroundSchema.virtual('properties.popUpMarkup').get(function() {
 
 //query middleware
 CampgroundSchema.post('findOneAndDelete', async function (data) {
-    // console.log("goneee!!")
     if(data){
         await Review.deleteMany({
             _id: {
